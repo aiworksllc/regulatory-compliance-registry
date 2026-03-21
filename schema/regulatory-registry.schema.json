@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/aiworksllc/regulatory-compliance-registry/schema/regulatory-registry.schema.json",
+  "title": "Regulatory Compliance Registry",
+  "description": "Schema for versioned regulatory source of truth used by Sentinel-Ops compliance exports",
+  "type": "object",
+  "required": ["version", "effectiveDate", "refreshedAt", "nextRefreshDue", "cadence", "regulations"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d{4}\\.Q[1-4](\\.PATCH-\\d+)?$",
+      "description": "Semantic date-based version: YYYY.Q# or YYYY.Q#.PATCH-N for out-of-cycle updates"
+    },
+    "effectiveDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Start date of this registry version's validity period"
+    },
+    "refreshedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when this version was last refreshed"
+    },
+    "nextRefreshDue": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of the next scheduled refresh"
+    },
+    "cadence": {
+      "type": "string",
+      "enum": ["quarterly"],
+      "description": "Refresh cadence"
+    },
+    "maintainer": {
+      "type": "string"
+    },
+    "contact": {
+      "type": "string",
+      "format": "email"
+    },
+    "regulations": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/regulation"
+      },
+      "description": "Map of regulation-id to regulation entry"
+    }
+  },
+  "$defs": {
+    "regulation": {
+      "type": "object",
+      "required": ["title", "jurisdiction", "authority", "citation", "url", "effectiveDate", "status", "summary"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Human-readable regulation title"
+        },
+        "jurisdiction": {
+          "type": "string",
+          "enum": ["US", "EU", "UK", "international"],
+          "description": "Primary jurisdiction"
+        },
+        "authority": {
+          "type": "string",
+          "description": "Issuing authority (SEC, ESMA, FINRA, etc.)"
+        },
+        "citation": {
+          "type": "string",
+          "description": "Official legal citation"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Public URL to the official regulation text"
+        },
+        "effectiveDate": {
+          "type": "string",
+          "format": "date",
+          "description": "Date the regulation became effective"
+        },
+        "lastAmended": {
+          "type": ["string", "null"],
+          "format": "date",
+          "description": "Date of most recent amendment, or null if never amended"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["in-force", "superseded", "proposed", "repealed"],
+          "description": "Current status of the regulation"
+        },
+        "supersededBy": {
+          "type": "string",
+          "description": "Regulation ID that supersedes this one (only when status=superseded)"
+        },
+        "summary": {
+          "type": "string",
+          "description": "One-sentence summary of what the regulation requires"
+        },
+        "soeMappings": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "SOE agent paths that reference this regulation (app/agent or app/* for all agents)"
+        }
+      }
+    }
+  }
+}

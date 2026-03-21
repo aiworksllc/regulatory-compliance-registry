@@ -1,0 +1,17 @@
+{
+  "name": "regulatory-compliance-registry",
+  "version": "2026.1.0",
+  "description": "Versioned regulatory source of truth for financial services AI governance. Quarterly refresh.",
+  "type": "module",
+  "scripts": {
+    "validate": "node validate.js registry/v2026.Q1/regulations.json",
+    "validate:all": "for d in registry/v*/regulations.json; do node validate.js $d || exit 1; done"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aiworksllc/regulatory-compliance-registry.git"
+  },
+  "keywords": ["compliance", "regulatory", "oscal", "stix", "sentinel-ops", "ai-governance", "financial-services"],
+  "author": "YadriWorks Inc.",
+  "license": "MIT"
+}

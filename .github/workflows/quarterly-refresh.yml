@@ -1,0 +1,70 @@
+name: Quarterly Registry Refresh Reminder
+
+on:
+  schedule:
+    # First Monday of Jan, Apr, Jul, Oct at 09:00 UTC
+    - cron: '0 9 1-7 1,4,7,10 1'
+  workflow_dispatch:
+
+jobs:
+  refresh-reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine current and next quarter
+        id: quarter
+        run: |
+          YEAR=$(date +%Y)
+          MONTH=$(date +%-m)
+          if [ $MONTH -le 3 ]; then Q="Q1"; NQ="Q2";
+          elif [ $MONTH -le 6 ]; then Q="Q2"; NQ="Q3";
+          elif [ $MONTH -le 9 ]; then Q="Q3"; NQ="Q4";
+          else Q="Q4"; NQ="Q1"; YEAR=$((YEAR+1));
+          fi
+          echo "current=${YEAR}.${Q}" >> $GITHUB_OUTPUT
+          echo "next=${YEAR}.${NQ}" >> $GITHUB_OUTPUT
+
+      - name: Check for stale registry
+        run: |
+          CURRENT="registry/v${{ steps.quarter.outputs.current }}/regulations.json"
+          if [ ! -f "$CURRENT" ]; then
+            echo "::warning::Registry v${{ steps.quarter.outputs.current }} not found — refresh overdue"
+          else
+            echo "Registry v${{ steps.quarter.outputs.current }} exists"
+          fi
+
+      - name: Create refresh issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const current = '${{ steps.quarter.outputs.current }}';
+            const next = '${{ steps.quarter.outputs.next }}';
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Quarterly Refresh: v${next} regulatory registry`,
+              body: [
+                `## Quarterly Regulatory Registry Refresh`,
+                ``,
+                `**Current version:** v${current}`,
+                `**Target version:** v${next}`,
+                ``,
+                `### Checklist`,
+                `- [ ] Review EUR-Lex for EU regulation amendments (MiFID II, MAR, SFDR, DORA, EU AI Act, GDPR, CSDR, EMIR, AIFMD, EU Taxonomy)`,
+                `- [ ] Review SEC/ECFR for US regulation amendments (Advisers Act, Reg NMS, Reg FD, SOX, ICA)`,
+                `- [ ] Review FINRA rulebook for rule changes (Rule 3110)`,
+                `- [ ] Review BCBS/BIS for Basel framework updates`,
+                `- [ ] Review FASB/IASB for ASC 820 / IFRS 13 updates`,
+                `- [ ] Update lastAmended dates for any changed regulations`,
+                `- [ ] Flag any superseded or repealed regulations`,
+                `- [ ] Add any newly enacted regulations relevant to SOE governance`,
+                `- [ ] Copy v${current} → v${next}, apply changes`,
+                `- [ ] Update version, effectiveDate, refreshedAt, nextRefreshDue`,
+                `- [ ] Run schema validation: \`node validate.js registry/v${next}/regulations.json\``,
+                `- [ ] Write CHANGELOG.md for v${next}`,
+                `- [ ] Update registry/latest symlink`,
+                `- [ ] PR review + merge`,
+              ].join('\n'),
+              labels: ['quarterly-refresh', 'compliance'],
+            });
